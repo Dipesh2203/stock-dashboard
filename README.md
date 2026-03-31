@@ -132,6 +132,26 @@ curl "http://127.0.0.1:8000/compare?symbol1=INFY&symbol2=TCS"
 - Add Dockerfile and deployment on Render
 - Add lightweight forecasting line using linear regression or ARIMA
 
+## Deployment (Render)
+
+This repository includes `render.yaml`, so Render can auto-configure the web service.
+
+1. Open the one-click deploy page:
+
+```text
+https://dashboard.render.com/blueprint/new?repo=https://github.com/Dipesh2203/stock-dashboard
+```
+
+2. Click **Apply** and keep the defaults.
+3. Wait for build and deploy to complete.
+4. Open your live app URL from Render.
+
+After deployment, verify:
+
+- `https://<your-render-url>/health`
+- `https://<your-render-url>/docs`
+- `https://<your-render-url>/dashboard`
+
 ## Submission Checklist
 
 - [x] Python backend with REST APIs

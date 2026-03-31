@@ -54,6 +54,11 @@ def root() -> RedirectResponse:
     return RedirectResponse(url="/dashboard")
 
 
+@app.get("/health")
+def health() -> dict:
+    return {"status": "ok"}
+
+
 @app.get("/dashboard", include_in_schema=False)
 def dashboard() -> FileResponse:
     index_file = STATIC_DIR / "index.html"
