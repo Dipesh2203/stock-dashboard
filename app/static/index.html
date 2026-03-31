@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stock Data Intelligence Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Manrope:wght@400;600;700&display=swap"
+        rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg: #f3f6ee;
+            --surface: #ffffff;
+            --ink: #101b16;
+            --muted: #5f6d65;
+            --accent: #006a4e;
+            --accent-soft: #d7f2e8;
+            --danger: #a73c3c;
+            --line: #dbe4dd;
+            --radius: 16px;
+            --shadow: 0 16px 36px rgba(16, 27, 22, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Manrope", sans-serif;
+            background:
+                radial-gradient(circle at 85% 10%, rgba(0, 106, 78, 0.15), transparent 30%),
+                radial-gradient(circle at 12% 90%, rgba(92, 146, 106, 0.15), transparent 28%),
+                var(--bg);
+            color: var(--ink);
+            min-height: 100vh;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            border-right: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(6px);
+            padding: 24px 18px;
+            overflow-y: auto;
+        }
+
+        .brand {
+            font-family: "Space Grotesk", sans-serif;
+            margin: 0;
+            font-size: 1.25rem;
+            letter-spacing: 0.3px;
+        }
+
+        .sub {
+            margin-top: 6px;
+            margin-bottom: 16px;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .company-btn {
+            width: 100%;
+            border: 1px solid transparent;
+            border-radius: 12px;
+            background: transparent;
+            text-align: left;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s, background 0.2s;
+            font-weight: 600;
+            color: var(--ink);
+            opacity: 0;
+            transform: translateX(-12px);
+            animation: reveal 0.35s forwards;
+        }
+
+        .company-btn:hover {
+            border-color: var(--accent);
+            transform: translateX(0) scale(1.01);
+        }
+
+        .company-btn.active {
+            background: var(--accent-soft);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .main {
+            padding: 24px;
+            display: grid;
+            gap: 18px;
+            grid-template-rows: auto auto 1.5fr auto;
+        }
+
+        .header {
+            display: grid;
+            grid-template-columns: minmax(220px, 1fr) minmax(420px, 2fr);
+            align-items: stretch;
+            gap: 14px;
+        }
+
+        .header-main {
+            display: grid;
+            align-content: start;
+            gap: 6px;
+        }
+
+        .header-metrics {
+            grid-template-columns: repeat(5, minmax(110px, 1fr));
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(1.3rem, 2.8vw, 2rem);
+            font-family: "Space Grotesk", sans-serif;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .controls-row {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex: 0 0 200px;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 16px;
+        }
+
+        select,
+        button {
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            padding: 10px;
+            font-family: inherit;
+            background: #fff;
+        }
+
+        button.primary {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        button.primary:hover {
+            filter: brightness(0.95);
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(120px, 1fr));
+            gap: 12px;
+        }
+
+        .metric {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 12px;
+        }
+
+        .metric .label {
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+
+        .metric .value {
+            margin-top: 8px;
+            font-size: 1rem;
+            font-weight: 700;
+            font-family: "Space Grotesk", sans-serif;
+        }
+
+        .grid-two {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 14px;
+            align-items: start;
+        }
+
+        .filters-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .filters-row label {
+            margin: 0;
+            min-width: fit-content;
+        }
+
+        .filters-row select {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .chart-container {
+            display: flex;
+            flex-direction: column;
+            height: 450px;
+            max-height: 450px;
+        }
+
+        #priceChart {
+            max-height: 400px !important;
+            height: 400px !important;
+        }
+
+        .compare-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .insight-list {
+            margin: 10px 0 0;
+            padding: 0;
+            list-style: none;
+            display: grid;
+            gap: 8px;
+        }
+
+        .insight-item {
+            background: #f8fbf8;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 8px 10px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.88rem;
+        }
+
+        .green {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .red {
+            color: var(--danger);
+            font-weight: 700;
+        }
+
+        .status {
+            color: var(--muted);
+            font-size: 0.9rem;
+            min-height: 20px;
+        }
+
+        @keyframes reveal {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @media (max-width: 1000px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                border-right: none;
+                border-bottom: 1px solid var(--line);
+                max-height: 260px;
+            }
+
+            .header {
+                grid-template-columns: 1fr;
+            }
+
+            .header-metrics {
+                grid-template-columns: repeat(2, minmax(120px, 1fr));
+            }
+
+            .grid-two {
+                grid-template-columns: 1fr;
+            }
+
+            .compare-section {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <h2 class="brand">Stock IQ Board</h2>
+            <div class="sub">Choose a company to load pricing trends.</div>
+            <div id="companyList"></div>
+        </aside>
+
+        <main class="main">
+            <section class="header card">
+                <div class="header-main">
+                    <h1 id="title">Loading companies...</h1>
+                    <div class="status" id="status"></div>
+                </div>
+                <div class="metrics header-metrics" id="metrics"></div>
+            </section>
+
+            <section class="card filters-row">
+                <label style="font-weight: 600; font-size: 0.9rem;">Chart Filters</label>
+                <select id="daysSelect">
+                    <option value="30" selected>Last 30 Days</option>
+                    <option value="90">Last 90 Days</option>
+                    <option value="180">Last 180 Days</option>
+                </select>
+                <select id="chartMetricSelect">
+                    <option value="close" selected>Closing Price</option>
+                    <option value="daily_return">Daily Return</option>
+                    <option value="cumulative_return">Cumulative Return</option>
+                    <option value="log_return">Log Return</option>
+                </select>
+            </section>
+
+            <section class="card chart-container">
+                <canvas id="priceChart" height="400"></canvas>
+            </section>
+
+            <section class="card compare-section">
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <h4 style="margin: 0 0 8px 0; font-size: 1rem;">Compare Stocks</h4>
+                    <select id="compareOne"></select>
+                    <select id="compareTwo"></select>
+                    <button class="primary" id="compareBtn">Compare</button>
+                </div>
+                <article class="card" id="compareResult" style="margin: 0;">Select two different symbols.</article>
+            </section>
+
+            <section class="card">
+                <h3>Top Movers</h3>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div>
+                        <strong>Gainers</strong>
+                        <ul class="insight-list" id="gainers"></ul>
+                    </div>
+                    <div>
+                        <strong>Losers</strong>
+                        <ul class="insight-list" id="losers"></ul>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const state = {
+            symbols: [],
+            activeSymbol: null,
+            chart: null,
+            series: []
+        };
+
+        const statusEl = document.getElementById('status');
+        const companyListEl = document.getElementById('companyList');
+        const titleEl = document.getElementById('title');
+        const metricsEl = document.getElementById('metrics');
+        const daysSelectEl = document.getElementById('daysSelect');
+        const chartMetricSelectEl = document.getElementById('chartMetricSelect');
+        const compareOneEl = document.getElementById('compareOne');
+        const compareTwoEl = document.getElementById('compareTwo');
+        const compareBtnEl = document.getElementById('compareBtn');
+        const compareResultEl = document.getElementById('compareResult');
+
+        const fmt = (num, digits = 2) => {
+            if (num === null || num === undefined || Number.isNaN(num)) return 'N/A';
+            return Number(num).toFixed(digits);
+        };
+
+        async function api(path) {
+            const response = await fetch(path);
+            if (!response.ok) {
+                const message = await response.text();
+                throw new Error(message || 'Request failed');
+            }
+            return response.json();
+        }
+
+        function renderCompanyList(symbols) {
+            companyListEl.innerHTML = '';
+            symbols.forEach((symbol, idx) => {
+                const btn = document.createElement('button');
+                btn.textContent = symbol;
+                btn.className = 'company-btn' + (symbol === state.activeSymbol ? ' active' : '');
+                btn.style.animationDelay = `${idx * 0.03}s`;
+                btn.onclick = () => loadSymbol(symbol);
+                companyListEl.appendChild(btn);
+            });
+        }
+
+        function renderMetrics(summary) {
+            const items = [
+                ['Latest Close', `Rs ${fmt(summary.latest_close)}`],
+                ['Avg Close 52W', `Rs ${fmt(summary.average_close_52w)}`],
+                ['52W High', `Rs ${fmt(summary.high_52w)}`],
+                ['52W Low', `Rs ${fmt(summary.low_52w)}`],
+                ['Volatility (14D)', fmt(summary.latest_volatility_14d, 4)]
+            ];
+
+            metricsEl.innerHTML = items
+                .map(([label, value]) => `<div class="metric"><div class="label">${label}</div><div class="value">${value}</div></div>`)
+                .join('');
+        }
+
+        function renderChart(points, symbol) {
+            const labels = points.map((row) => row.date);
+            const closeSeries = points.map((row) => row.close);
+            const maSeries = points.map((row) => row.ma7);
+            const dailySeries = points.map((row) => row.daily_return);
+            const cumulativeSeries = points.map((row) => row.cumulative_return);
+            const logSeries = points.map((row) => row.log_return);
+            const metric = chartMetricSelectEl.value;
+
+            let datasets;
+            let yTickAsPercent = false;
+
+            if (metric === 'daily_return') {
+                yTickAsPercent = true;
+                datasets = [
+                    {
+                        label: `${symbol} Daily Return`,
+                        data: dailySeries,
+                        borderColor: '#3b7bcd',
+                        backgroundColor: 'rgba(59,123,205,0.14)',
+                        tension: 0.2,
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: true
+                    }
+                ];
+            } else if (metric === 'cumulative_return') {
+                yTickAsPercent = true;
+                datasets = [
+                    {
+                        label: `${symbol} Cumulative Return`,
+                        data: cumulativeSeries,
+                        borderColor: '#8d4ad6',
+                        backgroundColor: 'rgba(141,74,214,0.14)',
+                        tension: 0.2,
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: true
+                    }
+                ];
+            } else if (metric === 'log_return') {
+                datasets = [
+                    {
+                        label: `${symbol} Log Return`,
+                        data: logSeries,
+                        borderColor: '#d97b00',
+                        backgroundColor: 'rgba(217,123,0,0.14)',
+                        tension: 0.2,
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: true
+                    }
+                ];
+            } else {
+                datasets = [
+                    {
+                        label: `${symbol} Close`,
+                        data: closeSeries,
+                        borderColor: '#006a4e',
+                        backgroundColor: 'rgba(0,106,78,0.14)',
+                        tension: 0.25,
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: true
+                    },
+                    {
+                        label: 'MA 7',
+                        data: maSeries,
+                        borderColor: '#d97b00',
+                        tension: 0.25,
+                        borderWidth: 2,
+                        pointRadius: 0
+                    }
+                ];
+            }
+
+            const ctx = document.getElementById('priceChart');
+            if (state.chart) {
+                state.chart.destroy();
+            }
+
+            // Reset canvas to prevent height bleed
+            ctx.style.height = '400px';
+            ctx.height = 400;
+
+            state.chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: (value) => yTickAsPercent ? `${(value * 100).toFixed(2)}%` : value
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function loadTopMovers() {
+            const payload = await api('/top-movers?limit=5');
+            const gainersEl = document.getElementById('gainers');
+            const losersEl = document.getElementById('losers');
+
+            gainersEl.innerHTML = payload.gainers
+                .map((item) => `<li class="insight-item"><span>${item.symbol}</span><span class="green">${fmt(item.daily_return * 100)}%</span></li>`)
+                .join('');
+            losersEl.innerHTML = payload.losers
+                .map((item) => `<li class="insight-item"><span>${item.symbol}</span><span class="red">${fmt(item.daily_return * 100)}%</span></li>`)
+                .join('');
+        }
+
+        async function loadSymbol(symbol) {
+            state.activeSymbol = symbol;
+            titleEl.textContent = `${symbol} Price Dashboard`;
+            statusEl.textContent = 'Loading latest data...';
+            renderCompanyList(state.symbols);
+
+            try {
+                const days = daysSelectEl.value;
+                const [series, summary] = await Promise.all([
+                    api(`/data/${symbol}?days=${days}`),
+                    api(`/summary/${symbol}`)
+                ]);
+                state.series = series;
+                renderMetrics(summary);
+                renderChart(series, symbol);
+                statusEl.textContent = `Loaded ${series.length} records for ${symbol}`;
+            } catch (err) {
+                statusEl.textContent = `Error: ${err.message}`;
+            }
+        }
+
+        async function runCompare() {
+            const one = compareOneEl.value;
+            const two = compareTwoEl.value;
+            if (!one || !two || one === two) {
+                compareResultEl.textContent = 'Please choose two different symbols for comparison.';
+                return;
+            }
+
+            compareResultEl.textContent = 'Comparing symbols...';
+            try {
+                const payload = await api(`/compare?symbol1=${one}&symbol2=${two}`);
+                compareResultEl.innerHTML = `
+          <strong>Comparison Result</strong><br />
+          Correlation (30D close): ${fmt(payload.correlation_close_30d, 4)}<br />
+          ${payload.symbol1}: ${fmt(payload.symbol1_return_30d * 100)}%<br />
+          ${payload.symbol2}: ${fmt(payload.symbol2_return_30d * 100)}%<br />
+          Winner: <span class="green">${payload.winner}</span>
+        `;
+            } catch (err) {
+                compareResultEl.textContent = `Error: ${err.message}`;
+            }
+        }
+
+        async function bootstrap() {
+            statusEl.textContent = 'Fetching company list...';
+            try {
+                const payload = await api('/companies');
+                state.symbols = payload.companies || [];
+                if (!state.symbols.length) {
+                    statusEl.textContent = 'No companies found. Try POST /refresh first.';
+                    return;
+                }
+
+                compareOneEl.innerHTML = state.symbols.map((s) => `<option value="${s}">${s}</option>`).join('');
+                compareTwoEl.innerHTML = state.symbols.map((s) => `<option value="${s}">${s}</option>`).join('');
+                if (state.symbols.length > 1) compareTwoEl.value = state.symbols[1];
+
+                renderCompanyList(state.symbols);
+                await Promise.all([
+                    loadSymbol(state.symbols[0]),
+                    loadTopMovers()
+                ]);
+            } catch (err) {
+                statusEl.textContent = `Startup error: ${err.message}`;
+            }
+        }
+
+        daysSelectEl.addEventListener('change', () => {
+            if (state.activeSymbol) {
+                loadSymbol(state.activeSymbol);
+            }
+        });
+
+        chartMetricSelectEl.addEventListener('change', () => {
+            if (state.activeSymbol && state.series.length) {
+                renderChart(state.series, state.activeSymbol);
+            }
+        });
+
+        compareBtnEl.addEventListener('click', runCompare);
+
+        bootstrap();
+    </script>
+</body>
+
+</html>
